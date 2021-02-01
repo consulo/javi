@@ -502,10 +502,8 @@ public class Arguments {
         }
 
 
-        String sourceString = options.get(Option.SOURCE);
-        Source source = (sourceString != null)
-                ? Source.lookup(sourceString)
-                : Source.DEFAULT;
+        String sourceString = Source.DEFAULT.toString();
+        Source source = Source.DEFAULT;
         String targetString = options.get(Option.TARGET);
         Target target = (targetString != null)
                 ? Target.lookup(targetString)

@@ -119,11 +119,7 @@ public enum Source {
     public static Source instance(Context context) {
         Source instance = context.get(sourceKey);
         if (instance == null) {
-            Options options = Options.instance(context);
-            String sourceString = options.get(SOURCE);
-            if (sourceString != null) instance = lookup(sourceString);
-            if (instance == null) instance = DEFAULT;
-            context.put(sourceKey, instance);
+            context.put(sourceKey, instance = DEFAULT);
         }
         return instance;
     }

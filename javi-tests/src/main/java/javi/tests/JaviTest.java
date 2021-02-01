@@ -27,6 +27,20 @@ public class JaviTest {
 
     @Test
     public void testTextBlockSource() throws Exception {
+        doTest();
+    }
+
+    @Test
+    public void testSwitchYieldSource() throws Exception {
+        doTest();
+    }
+
+    @Test
+    public void testRecordPointSource() throws Exception {
+        doTest();
+    }
+
+    private void doTest() throws Exception {
         JavaCompiler javiCompiler = JaviUtil.getJaviCompiler();
 
         DiagnosticListener<JavaFileObject> diagnosticListener = new DiagnosticListener<>() {
@@ -57,14 +71,17 @@ public class JaviTest {
         List<String> options = new ArrayList<>();
         options.add("-target");
         options.add("11");
-        
+
+        options.add("-source");
+        options.add("11");
+
         JavaCompiler.CompilationTask task = javiCompiler.getTask(new PrintWriter(System.out), fileManager, diagnosticListener, options, List.of(), paths);
 
-        if(!task.call()) {
+        if (!task.call()) {
             throw new IllegalArgumentException("compilation failed");
         }
 
-        Files.walkFileTree(targetDir, new FileVisitor<Path>() {
+        Files.walkFileTree(targetDir, new FileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 return FileVisitResult.CONTINUE;
