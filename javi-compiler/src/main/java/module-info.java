@@ -73,6 +73,12 @@ import javi.api.tools.ToolProvider;
 module javi.compiler {
     exports javi.compiler.spi;
 
+    exports javi.compiler;
+
     exports javi.api.tools;
+
+    uses javi.api.tools.JavaCompiler;
+
+    provides javi.api.tools.JavaCompiler with javi.compiler.spi.JaviCompiler;
 }
 

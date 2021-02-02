@@ -29,5 +29,6 @@
     <modules>
         <module>javi-compiler</module>
         <module>javi-tests</module>
+        <module>plexus-compiler-javi</module>
     </modules>
 </project>

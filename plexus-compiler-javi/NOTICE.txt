@@ -1,0 +1,3 @@
+From https://github.com/codehaus-plexus/plexus-compiler/tree/master/plexus-compilers/plexus-compiler-javac
+
+Apache 2 license + MIT

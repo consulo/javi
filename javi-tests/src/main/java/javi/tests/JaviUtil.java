@@ -3,6 +3,8 @@ package javi.tests;
 import javi.api.tools.JavaCompiler;
 import javi.compiler.spi.JaviCompiler;
 
+import java.util.ServiceLoader;
+
 /**
  * @author VISTALL
  * @since 01/02/2021
@@ -10,6 +12,6 @@ import javi.compiler.spi.JaviCompiler;
 public class JaviUtil {
 
     public static JavaCompiler getJaviCompiler() {
-        return new JaviCompiler();
+        return ServiceLoader.load(JavaCompiler.class).findFirst().get();
     }
 }
