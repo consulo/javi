@@ -10,7 +10,7 @@
 
   <groupId>consulo.internal</groupId>
   <artifactId>plexus-compiler-javi</artifactId>
-  <version>16.0.0-SNAPSHOT</version>
+  <version>16.0.1-SNAPSHOT</version>
 
   <name>Plexus Javi Component</name>
   <description>Javi Compiler support for Plexus Compiler component.</description>
