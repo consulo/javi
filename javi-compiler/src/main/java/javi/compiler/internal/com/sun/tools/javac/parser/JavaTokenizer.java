@@ -36,6 +36,7 @@ import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.E
 import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import javi.compiler.internal.com.sun.tools.javac.util.*;
 import javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.*;
+import javi.compiler.internal.runtime.StringBackport;
 
 import java.nio.CharBuffer;
 import java.util.Set;
@@ -1058,7 +1059,7 @@ public class JavaTokenizer extends UnicodeReader {
                     }
                     // Remove incidental indentation.
                     try {
-                        string = string.stripIndent();
+                        string = StringBackport.stripIndent(string);
                     } catch (Exception ex) {
                         // Error already reported, just use unstripped string.
                     }
@@ -1067,7 +1068,7 @@ public class JavaTokenizer extends UnicodeReader {
                 // Translate escape sequences if present.
                 if (hasEscapeSequences) {
                     try {
-                        string = string.translateEscapes();
+                        string = StringBackport.translateEscapes(string);
                     } catch (Exception ex) {
                         // Error already reported, just use untranslated string.
                     }
