@@ -40,7 +40,6 @@ import java.security.PrivilegedAction;
  * @since 1.5
  */
 class AnnotationInvocationHandler implements InvocationHandler, Serializable {
-    @java.io.Serial
     private static final long serialVersionUID = 6182022883658399397L;
     private final Class<? extends Annotation> type;
     @SuppressWarnings("serial") // Not statically typed as Serializable

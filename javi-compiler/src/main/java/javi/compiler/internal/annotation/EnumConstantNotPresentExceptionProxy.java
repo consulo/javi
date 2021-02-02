@@ -32,7 +32,6 @@ package javi.compiler.internal.annotation;
  * @since 1.5
  */
 public class EnumConstantNotPresentExceptionProxy extends ExceptionProxy {
-    @java.io.Serial
     private static final long serialVersionUID = -604662101303187330L;
     final Class<? extends Enum<?>> enumType;
     final String constName;
