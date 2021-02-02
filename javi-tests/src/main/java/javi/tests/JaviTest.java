@@ -5,11 +5,15 @@ import javi.api.tools.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.objectweb.asm.ClassReader;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -89,7 +93,23 @@ public class JaviTest {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                System.out.println(file);
+                String filePath = file.toString();
+
+                byte[] bytes = Files.readAllBytes(file);
+
+                ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
+
+                int magic = buffer.getInt();
+                if(magic != 0xCAFEBABE) {
+                    throw new IOException(filePath + " magic failed");
+                }
+
+                short minor = buffer.getShort();
+                short major = buffer.getShort();
+
+                if(major != 55) {
+                    throw new IOException(filePath + "major faile");
+                }
                 return FileVisitResult.CONTINUE;
             }
 

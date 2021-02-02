@@ -6,7 +6,7 @@
 
     <groupId>consulo.internal</groupId>
     <artifactId>javi-compiler</artifactId>
-    <version>16-SNAPSHOT</version>
+    <version>16.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <build>
@@ -16,11 +16,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
+                    <!-- just max version - for correct ide set-->
                     <source>16</source>
                     <target>16</target>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
                     <encoding>UTF-8</encoding>
+                    
                 </configuration>
             </plugin>
             <plugin>

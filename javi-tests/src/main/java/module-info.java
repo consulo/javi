@@ -7,5 +7,7 @@ module javi.tests {
 
     requires com.github.marschall.memoryfilesystem;
 
+    requires org.objectweb.asm;
+
     requires junit;
 }
