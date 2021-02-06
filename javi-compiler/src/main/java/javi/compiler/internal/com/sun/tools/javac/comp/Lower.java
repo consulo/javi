@@ -28,6 +28,7 @@ package javi.compiler.internal.com.sun.tools.javac.comp;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import javi.api.lang.model.element.ElementVisitor;
 import javi.compiler.internal.com.sun.tools.javac.code.*;
 import javi.compiler.internal.com.sun.tools.javac.code.Kinds.KindSelector;
 import javi.compiler.internal.com.sun.tools.javac.code.Scope.WriteableScope;
@@ -2466,11 +2467,178 @@ public class Lower extends TreeTranslator {
         }
 
         tree.defs = tree.defs.appendList(generateMandatedAccessors(tree));
-        tree.defs = tree.defs.appendList(List.of(
-                generateRecordMethod(tree, names.toString, vars, getterMethHandles),
-                generateRecordMethod(tree, names.hashCode, vars, getterMethHandles),
-                generateRecordMethod(tree, names.equals, vars, getterMethHandles)
-        ));
+        if(target.hasRealRecords()) {
+            tree.defs = tree.defs.appendList(List.of(
+                    generateRecordMethod(tree, names.toString, vars, getterMethHandles),
+                    generateRecordMethod(tree, names.hashCode, vars, getterMethHandles),
+                    generateRecordMethod(tree, names.equals, vars, getterMethHandles)
+            ));
+        }
+        else {
+            tree.defs = tree.defs.appendList(List.of(
+                    generateHashCodeOldStyle(tree, getterMethHandles),
+                    generateEqualsOldStyle(tree, getterMethHandles),
+                    generateToStringOldStyle(tree, getterMethHandles)
+            ));
+        }
+    }
+
+    JCTree generateToStringOldStyle(JCClassDecl tree, MethodHandleSymbol[] getterMethHandles) {
+        MethodSymbol msym = lookupMethod(tree.pos(), names.toString, tree.sym.type, List.nil());
+
+        // compiler generated methods have the record flag set, user defined ones dont
+        if ((msym.flags() & RECORD) != 0) {
+            List<JCStatement> statements = List.nil();
+            JCNewClass newStringBuilder = make.NewClass(null, List.nil(), make.Ident(syms.stringBuilderType.tsym), List.nil(), null);
+            newStringBuilder.constructor = rs.resolveConstructor(tree.pos(), attrEnv, syms.stringBuilderType, List.nil(), List.nil());
+            newStringBuilder.type = syms.stringBuilderType;
+            
+            VarSymbol symbol = new VarSymbol(SYNTHETIC, names.builder$, syms.stringBuilderType, msym);
+            symbol.adr = 0;
+            
+            JCVariableDecl def = make.VarDef(symbol, newStringBuilder);
+            def.type = syms.stringBuilderType;
+            
+            statements = statements.append(def);
+
+            statements = statements.append(appendStringBuilder(tree, def, make.Literal(tree.getSimpleName() + "[")));
+            for (int i = 0; i < getterMethHandles.length; i++) {
+                if(i != 0) {
+                    statements = statements.append(appendStringBuilder(tree, def, make.Literal(", ")));
+                }
+
+                Name name = getterMethHandles[i].name;
+
+                Symbol targetMethod = rs.resolveQualifiedMethod(tree.pos(), attrEnv, tree.type, name, List.nil(), List.nil());
+
+                statements = statements.append(appendStringBuilder(tree, def, make.Literal(name + "=")));
+
+                JCMethodInvocation invocation = make.Apply(List.nil(), make.Ident(targetMethod), List.nil());
+                invocation.type = ((MethodSymbol) targetMethod).getReturnType();
+
+                statements = statements.append(appendStringBuilder(tree, def, invocation));
+            }
+
+            statements = statements.append(appendStringBuilder(tree, def, make.Literal("]")));
+
+            Symbol toString = rs.resolveQualifiedMethod(tree.pos(), attrEnv, syms.stringBuilderType, names.toString, List.nil(), List.nil());
+            JCMethodInvocation call = make.Apply(List.nil(), make.Select(make.Ident(def), toString), List.nil());
+            call.type = syms.stringType;
+
+            statements = statements.append(make.Return(call));
+            return make.MethodDef(msym, make.Block(0, statements));
+        }
+        else {
+            return make.Block(SYNTHETIC, List.nil());
+        }
+    }
+
+    private JCStatement appendStringBuilder(JCClassDecl tree, JCVariableDecl def, JCExpression argument) {
+        Symbol appendSym = rs.resolveQualifiedMethod(tree.pos(), attrEnv, syms.stringBuilderType, names.append, List.of(argument.type), List.nil());
+
+        JCMethodInvocation call = make.Apply(List.nil(), make.Select(make.Ident(def), appendSym), List.of(argument));
+        call.type = syms.stringBuilderType;
+
+        return make.Exec(call);
+    }
+
+    JCTree generateEqualsOldStyle(JCClassDecl tree, MethodHandleSymbol[] getterMethHandles) {
+        MethodSymbol msym = lookupMethod(tree.pos(), names.equals, tree.sym.type, List.of(syms.objectType));
+
+        // TODO
+        // compiler generated methods have the record flag set, user defined ones dont
+        if ((msym.flags() & RECORD) != 0) {
+            VarSymbol otherParam = msym.getParameters().get(0);
+
+            List<JCStatement> statements = List.nil();
+
+            // this == other
+            statements = statements.append(generateIfWithBinary(tree, EQ, make.This(tree.type), make.Ident(otherParam), true));
+            // other == null
+            JCLiteral nullLiteral = make.Literal(BOT, null);
+            nullLiteral.type = syms.objectType;
+            statements = statements.append(generateIfWithBinary(tree, EQ, make.Ident(otherParam), nullLiteral, false));
+            // other != this.getClass()
+            Symbol getClass = rs.resolveMethod(tree.pos(), attrEnv, names.getClass, List.nil(), List.nil());
+            JCMethodInvocation thisGetClassCall = make.Apply(List.nil(), make.Select(make.This(tree.type), getClass), List.nil());
+            thisGetClassCall.type = syms.classType;
+            JCMethodInvocation otherGetClassCall = make.Apply(List.nil(), make.Select(make.Ident(otherParam), getClass), List.nil());
+            otherGetClassCall.type = syms.classType;
+            statements = statements.append(generateIfWithBinary(tree, NE, thisGetClassCall, otherGetClassCall, false));
+
+            Symbol equalsStatic = rs.resolveQualifiedMethod(tree.pos(), attrEnv, syms.objectsType, names.equals, List.of(syms.objectType, syms.objectType), List.nil());
+            
+            for (MethodHandleSymbol methHandle : getterMethHandles) {
+                Symbol targetMethod = rs.resolveQualifiedMethod(tree.pos(), attrEnv, tree.type, methHandle.name, List.nil(), List.nil());
+
+                JCMethodInvocation thisC = make.Apply(List.nil(), make.Select(make.This(tree.type), targetMethod), List.nil());
+                thisC.type = ((MethodSymbol) targetMethod).getReturnType();
+
+                JCTypeCast typeCast = make.TypeCast(tree.type, make.Ident(otherParam));
+
+                JCMethodInvocation otherParamC = make.Apply(List.nil(), make.Select(typeCast, targetMethod), List.nil());
+                otherParamC.type = ((MethodSymbol) targetMethod).getReturnType();
+
+                JCMethodInvocation equalsCall = make.Apply(List.nil(), make.Select(make.Ident(syms.objectsType.tsym), equalsStatic), List.of(thisC, otherParamC));
+                equalsCall.type = syms.booleanType;
+
+                JCUnary prefixNotCall = make.Unary(NOT, equalsCall);
+                prefixNotCall.operator = operators.resolveUnary(tree.pos(), NOT, syms.booleanType);
+
+                statements = statements.append(generateIf(tree, prefixNotCall, false));
+            }
+            
+            // last statement - true
+            statements = statements.append(make.Return(make.Literal(true)));
+            return make.MethodDef(msym, make.Block(0, statements));
+        }  else {
+            return make.Block(SYNTHETIC, List.nil());
+        }
+    }
+
+    JCStatement generateIfWithBinary(JCClassDecl tree, JCTree.Tag tag, JCExpression left, JCExpression right, boolean result) {
+        JCBinary binary = make.Binary(tag, left, right);
+        binary.operator = operators.resolveBinary(tree.pos(), tag, left.type, right.type);
+        return generateIf(tree, binary, result);
+    }
+
+    JCStatement generateIf(JCClassDecl tree, JCExpression expr, boolean returnValue) {
+        expr.type = syms.booleanType;
+
+        return make.If(expr, make.Return(make.Literal(returnValue)), null);
+    }
+
+    JCTree generateHashCodeOldStyle(JCClassDecl tree, MethodHandleSymbol[] getterMethHandles) {
+        make_at(tree.pos());
+        MethodSymbol msym = lookupMethod(tree.pos(), names.hashCode, tree.sym.type, List.nil());
+
+        // compiler generated methods have the record flag set, user defined ones dont
+        if ((msym.flags() & RECORD) != 0) {
+            ArrayType objectArray = new ArrayType(syms.objectType, syms.objectType.tsym);
+
+            JCIdent objectsSym = make.Ident(syms.objectsType.tsym);
+
+            MethodSymbol hashMethod = rs.resolveInternalMethod(tree.pos(), attrEnv, syms.objectsType, names.hash, List.of(objectArray), List.nil());
+            
+            JCExpression hashAccess = make.Select(objectsSym, hashMethod);
+
+            List<JCExpression> args = List.nil();
+            for (MethodHandleSymbol getterMethHandle : getterMethHandles) {
+                Symbol targetMethod = rs.resolveQualifiedMethod(tree.pos(), attrEnv, tree.type, getterMethHandle.name, List.nil(), List.nil());
+
+                JCMethodInvocation invocation = make.Apply(List.nil(), make.Ident(targetMethod), List.nil());
+                invocation.type = ((MethodSymbol)targetMethod).getReturnType();
+                args = args.append(invocation);
+            }
+
+            JCMethodInvocation call = make.Apply(List.nil(), hashAccess, args);
+            TreeInfo.setVarargsElement(call, types.elemtype(hashMethod.params().get(0).type));
+            call.type = syms.intType;
+
+            return make.MethodDef(msym, make.Block(0, List.of(make.Return(call))));
+        } else {
+            return make.Block(SYNTHETIC, List.nil());
+        }
     }
 
     JCTree generateRecordMethod(JCClassDecl tree, Name name, List<VarSymbol> vars, MethodHandleSymbol[] getterMethHandles) {

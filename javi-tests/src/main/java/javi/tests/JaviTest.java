@@ -6,10 +6,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.RecordComponentVisitor;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -44,7 +46,40 @@ public class JaviTest {
         doTest();
     }
 
-    private void doTest() throws Exception {
+    @Test
+    public void testRecordSuper() throws Exception {
+        Path path = doTest();
+
+        String[] superClass = new String[1];
+        boolean[] enterRecordComponent = new boolean[1];
+
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public RecordComponentVisitor visitRecordComponent(String name, String descriptor, String signature) {
+                enterRecordComponent[0] = true;
+                return null;
+            }
+
+            @Override
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                superClass[0] = superName;
+            }
+        };
+
+        ClassReader cr = new ClassReader(Files.readAllBytes(path));
+
+        cr.accept(visitor, ClassReader.SKIP_CODE);
+
+        if(enterRecordComponent[0]) {
+            throw new IllegalArgumentException("Unexpected record component");
+        }
+        
+        if("java/lang/Record".equals(superClass[0])) {
+            throw new IllegalArgumentException("Unexpected super record");
+        }
+    }
+
+    private Path doTest() throws Exception {
         JavaCompiler javiCompiler = JaviUtil.getJaviCompiler();
 
         DiagnosticListener<JavaFileObject> diagnosticListener = new DiagnosticListener<>() {
@@ -60,7 +95,8 @@ public class JaviTest {
 
         String methodName = myTestName.getMethodName();
 
-        File testSource = new File(dir, "testdata/" + methodName.substring(4, methodName.length()) + ".java");
+        String fileName = methodName.substring(4, methodName.length());
+        File testSource = new File(dir, "testdata/" + fileName + ".java");
 
         FileSystem fileSystem = MemoryFileSystemBuilder.newEmpty().build();
 
@@ -85,6 +121,7 @@ public class JaviTest {
             throw new IllegalArgumentException("compilation failed");
         }
 
+        Path[] ref = new Path[1];
         Files.walkFileTree(targetDir, new FileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
@@ -95,19 +132,23 @@ public class JaviTest {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 String filePath = file.toString();
 
+                if(file.getFileName().toString().equals(fileName + ".class")) {
+                    ref[0] = file;
+                }
+
                 byte[] bytes = Files.readAllBytes(file);
 
                 ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
 
                 int magic = buffer.getInt();
-                if(magic != 0xCAFEBABE) {
+                if (magic != 0xCAFEBABE) {
                     throw new IOException(filePath + " magic failed");
                 }
 
                 short minor = buffer.getShort();
                 short major = buffer.getShort();
 
-                if(major != 55) {
+                if (major != 55) {
                     throw new IOException(filePath + "major faile");
                 }
                 return FileVisitResult.CONTINUE;
@@ -123,5 +164,11 @@ public class JaviTest {
                 return FileVisitResult.CONTINUE;
             }
         });
+
+        if(ref[0] == null) {
+            throw new IllegalArgumentException("Can't find result");
+        }
+
+        return ref[0];
     }
 }

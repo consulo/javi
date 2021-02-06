@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>consulo.internal</groupId>
-    <artifactId>javi-parent</artifactId>
+    <artifactId>javi-runtime-showcase</artifactId>
     <version>16.0.4-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <build>
         <plugins>
@@ -16,20 +16,22 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>11</source>
+                    <!-- just max version - for correct ide set-->
+                    <source>16</source>
                     <target>11</target>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
                     <encoding>UTF-8</encoding>
+                    <compilerId>javi</compilerId>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>plexus-compiler-javi</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
-
-    <modules>
-        <module>javi-compiler</module>
-        <module>javi-tests</module>
-        <module>javi-runtime-showcase</module>
-        <module>plexus-compiler-javi</module>
-    </modules>
 </project>

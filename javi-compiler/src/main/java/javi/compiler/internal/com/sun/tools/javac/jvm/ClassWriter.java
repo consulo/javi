@@ -843,6 +843,10 @@ public class ClassWriter extends ClassFile {
     }
 
     int writeRecordAttribute(ClassSymbol csym) {
+        if(!target.hasRealRecords()) {
+            return 0;
+        }
+
         int alenIdx = writeAttr(names.Record);
         Scope s = csym.members();
         databuf.appendChar(csym.getRecordComponents().size());

@@ -194,4 +194,11 @@ public enum Target {
     public boolean hasSealedClasses() {
         return compareTo(JDK1_15) >= 0;
     }
+
+    /**
+     * Does the target VM support records
+     */
+    public boolean hasRealRecords() {
+        return compareTo(JDK1_16) >= 0;
+    }
 }

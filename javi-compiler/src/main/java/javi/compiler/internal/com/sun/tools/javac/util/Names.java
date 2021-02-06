@@ -214,6 +214,10 @@ public class Names {
     public final Name permits;
     public final Name sealed;
 
+    public final Name Objects;
+    public final Name hash;
+    public final Name builder$;
+
     public final Name.Table table;
 
     public Names(Context context) {
@@ -382,6 +386,10 @@ public class Names {
         // sealed types
         permits = fromString("permits");
         sealed = fromString("sealed");
+
+        Objects = fromString("Objects");
+        hash = fromString("hash");
+        builder$ = fromString("builder$");
     }
 
     protected Name.Table createTable(Options options) {

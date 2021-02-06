@@ -39,6 +39,7 @@ import javi.compiler.internal.com.sun.tools.javac.code.Scope.StarImportScope;
 import javi.compiler.internal.com.sun.tools.javac.code.Scope.WriteableScope;
 import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
 import javi.compiler.internal.com.sun.tools.javac.comp.Annotate.AnnotationTypeMetadata;
+import javi.compiler.internal.com.sun.tools.javac.jvm.Target;
 import javi.compiler.internal.com.sun.tools.javac.tree.*;
 import javi.compiler.internal.com.sun.tools.javac.util.*;
 import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
@@ -144,6 +145,8 @@ public class TypeEnter implements Completer {
         Source source = Source.instance(context);
         allowTypeAnnos = Feature.TYPE_ANNOTATIONS.allowedInSource(source);
         allowDeprecationOnImport = Feature.DEPRECATION_ON_IMPORT.allowedInSource(source);
+        Target target = Target.instance(context);
+        allowRealRecords = target.hasRealRecords();
     }
 
     /** Switch: support type annotations.
@@ -160,6 +163,11 @@ public class TypeEnter implements Completer {
      *  unnecessarily deep recursion.
      */
     boolean completionEnabled = true;
+
+    /**
+     * Can analyze records as real records on VM. (below target 16 they not real)
+     */
+    boolean allowRealRecords = true;
 
     /* Verify Imports:
      */
@@ -692,7 +700,7 @@ public class TypeEnter implements Completer {
                                   true, false, false)
                 : (sym.fullname == names.java_lang_Object)
                 ? Type.noType
-                : sym.isRecord() ? syms.recordType : syms.objectType;
+                : sym.isRecord() && allowRealRecords ? syms.recordType : syms.objectType;
             }
             ct.supertype_field = modelMissingTypes(baseEnv, supertype, extending, false);
 
