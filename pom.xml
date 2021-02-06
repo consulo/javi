@@ -6,7 +6,7 @@
 
     <groupId>consulo.internal</groupId>
     <artifactId>javi-parent</artifactId>
-    <version>16.0.4-SNAPSHOT</version>
+    <version>16.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <build>
