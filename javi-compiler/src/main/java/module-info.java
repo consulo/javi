@@ -71,6 +71,8 @@ import javi.api.tools.ToolProvider;
  * @since 9
  */
 module javi.compiler {
+    requires org.apache.commons.lang3;
+    
     exports javi.compiler.spi;
 
     exports javi.compiler;

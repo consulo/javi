@@ -41,34 +41,8 @@ package org.codehaus.plexus.compiler.javac;
  *  limitations under the License.
  */
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Properties;
-import java.util.StringTokenizer;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.codehaus.plexus.compiler.AbstractCompiler;
 import org.codehaus.plexus.compiler.Compiler;
-import org.codehaus.plexus.compiler.CompilerConfiguration;
-import org.codehaus.plexus.compiler.CompilerException;
-import org.codehaus.plexus.compiler.CompilerMessage;
-import org.codehaus.plexus.compiler.CompilerOutputStyle;
-import org.codehaus.plexus.compiler.CompilerResult;
+import org.codehaus.plexus.compiler.*;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.Os;
@@ -76,6 +50,12 @@ import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.cli.Commandline;
+
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
@@ -173,16 +153,7 @@ public class JaviCompiler extends AbstractCompiler
         }
         else
         {
-            if ( isJava16() && !config.isForceJavacCompilerUse() )
-            {
-                // use fqcn to prevent loading of the class on 1.5 environment !
-                result =
-                    inProcessCompiler().compileInProcess( args, config, sourceFiles );
-            }
-            else
-            {
-                result = compileInProcess( args, config );
-            }
+            result = inProcessCompiler().compileInProcess(args, config, sourceFiles);
         }
 
         return result;
@@ -193,17 +164,10 @@ public class JaviCompiler extends AbstractCompiler
 		return new JaviToolsCompiler();
 	}
 
+	@Deprecated
     protected static boolean isJava16()
     {
-        try
-        {
-            Thread.currentThread().getContextClassLoader().loadClass( "javax.tools.ToolProvider" );
-            return true;
-        }
-        catch ( Exception e )
-        {
-            return false;
-        }
+       return true;
     }
 
     public String[] createCommandLine( CompilerConfiguration config )
