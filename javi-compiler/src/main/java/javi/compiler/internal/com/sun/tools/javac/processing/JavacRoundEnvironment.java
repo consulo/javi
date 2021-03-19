@@ -25,15 +25,16 @@
 
 package javi.compiler.internal.com.sun.tools.javac.processing;
 
-import java.lang.annotation.Annotation;
-import javi.api.lang.model.element.*;
-import javi.api.lang.model.util.*;
-import java.util.*;
-
 import javi.api.annotation.processing.RoundEnvironment;
+import javi.api.lang.model.element.*;
+import javi.api.lang.model.util.ElementScanner14;
+import javi.api.lang.model.util.Elements;
 import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
 import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy;
 import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
+
+import java.lang.annotation.Annotation;
+import java.util.*;
 
 /**
  * Object providing state about a prior round of annotation processing.
@@ -67,7 +68,7 @@ public class JavacRoundEnvironment implements RoundEnvironment {
         this.errorRaised = errorRaised;
         this.rootElements = rootElements;
         this.processingEnv = processingEnv;
-        this.allowModules = Feature.MODULES.allowedInSource(processingEnv.source);
+        this.allowModules = Feature.MODULES.allowedInContext(processingEnv.getContext());
         this.eltUtils = processingEnv.getElementUtils();
     }
 

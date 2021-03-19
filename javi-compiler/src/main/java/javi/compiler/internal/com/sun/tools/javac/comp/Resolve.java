@@ -150,7 +150,7 @@ public class Resolve {
         checkVarargsAccessAfterResolution =
                 Feature.POST_APPLICABILITY_VARARGS_ACCESS_CHECK.allowedInSource(source);
         polymorphicSignatureScope = WriteableScope.create(syms.noSymbol);
-        allowModules = Feature.MODULES.allowedInSource(source);
+        allowModules = Feature.MODULES.allowedInContext(context);
         allowRecords = Feature.RECORDS.allowedInSource(source);
         dumpMethodReferenceSearchResults = options.isSet("debug.dumpMethodReferenceSearchResults");
     }

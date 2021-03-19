@@ -117,7 +117,7 @@ public class JavacElements implements Elements {
         javacTaskImpl = t instanceof JavacTaskImpl ? (JavacTaskImpl) t : null;
         log = Log.instance(context);
         Source source = Source.instance(context);
-        allowModules = Feature.MODULES.allowedInSource(source);
+        allowModules = Feature.MODULES.allowedInContext(context);
     }
 
     @Override @DefinedBy(Api.LANGUAGE_MODEL)

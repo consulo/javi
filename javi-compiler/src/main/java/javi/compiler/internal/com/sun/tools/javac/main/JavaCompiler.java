@@ -25,19 +25,6 @@
 
 package javi.compiler.internal.com.sun.tools.javac.main;
 
-import java.io.*;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.MissingResourceException;
-import java.util.Queue;
-import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.function.Function;
-
 import javi.api.annotation.processing.Processor;
 import javi.api.lang.model.SourceVersion;
 import javi.api.lang.model.element.ElementVisitor;
@@ -46,7 +33,6 @@ import javi.api.tools.JavaFileManager;
 import javi.api.tools.JavaFileObject;
 import javi.api.tools.JavaFileObject.Kind;
 import javi.api.tools.StandardLocation;
-
 import javi.compiler.internal.com.sun.source.util.TaskEvent;
 import javi.compiler.internal.com.sun.tools.javac.api.MultiTaskListener;
 import javi.compiler.internal.com.sun.tools.javac.code.*;
@@ -54,44 +40,45 @@ import javi.compiler.internal.com.sun.tools.javac.code.Lint.LintCategory;
 import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
 import javi.compiler.internal.com.sun.tools.javac.code.Symbol.ClassSymbol;
 import javi.compiler.internal.com.sun.tools.javac.code.Symbol.CompletionFailure;
+import javi.compiler.internal.com.sun.tools.javac.code.Symbol.ModuleSymbol;
 import javi.compiler.internal.com.sun.tools.javac.code.Symbol.PackageSymbol;
 import javi.compiler.internal.com.sun.tools.javac.comp.*;
 import javi.compiler.internal.com.sun.tools.javac.comp.CompileStates.CompileState;
 import javi.compiler.internal.com.sun.tools.javac.file.JavacFileManager;
-import javi.compiler.internal.com.sun.tools.javac.jvm.*;
-import javi.compiler.internal.com.sun.tools.javac.parser.*;
+import javi.compiler.internal.com.sun.tools.javac.jvm.ClassReader;
+import javi.compiler.internal.com.sun.tools.javac.jvm.ClassWriter;
+import javi.compiler.internal.com.sun.tools.javac.jvm.Gen;
+import javi.compiler.internal.com.sun.tools.javac.jvm.JNIWriter;
+import javi.compiler.internal.com.sun.tools.javac.parser.Parser;
+import javi.compiler.internal.com.sun.tools.javac.parser.ParserFactory;
 import javi.compiler.internal.com.sun.tools.javac.platform.PlatformDescription;
-import javi.compiler.internal.com.sun.tools.javac.processing.*;
+import javi.compiler.internal.com.sun.tools.javac.processing.JavacProcessingEnvironment;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Errors;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Fragments;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Notes;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import javi.compiler.internal.com.sun.tools.javac.tree.*;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCExpression;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCLambda;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCMemberReference;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.*;
 import javi.compiler.internal.com.sun.tools.javac.util.*;
 import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
+import javi.compiler.internal.com.sun.tools.javac.util.List;
 import javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.Factory;
 import javi.compiler.internal.com.sun.tools.javac.util.Log.DiagnosticHandler;
 import javi.compiler.internal.com.sun.tools.javac.util.Log.DiscardDiagnosticHandler;
 import javi.compiler.internal.com.sun.tools.javac.util.Log.WriterKind;
 
-import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.*;
-
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.ModuleSymbol;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Errors;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Fragments;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Notes;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Warnings;
-
-import static javi.compiler.internal.com.sun.tools.javac.code.TypeTag.CLASS;
-import static javi.compiler.internal.com.sun.tools.javac.main.Option.*;
-import static javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag.*;
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.*;
+import java.util.function.Function;
 
 import static javi.api.tools.StandardLocation.CLASS_OUTPUT;
-
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.JCModuleDecl;
+import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.ABSENT_TYP;
+import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.PCK;
+import static javi.compiler.internal.com.sun.tools.javac.code.TypeTag.CLASS;
+import static javi.compiler.internal.com.sun.tools.javac.main.Option.*;
+import static javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag.RECOVERABLE;
 
 /** This class could be the main entry point for GJC when GJC is used as a
  *  component in a larger software system. It provides operations to
@@ -692,7 +679,7 @@ public class JavaCompiler {
         if (sep == -1) {
             msym = modules.getDefaultModule();
             typeName = name;
-        } else if (Feature.MODULES.allowedInSource(source)) {
+        } else if (Feature.MODULES.allowedInContext(context)) {
             Name modName = names.fromString(name.substring(0, sep));
 
             msym = moduleFinder.findModule(modName);

@@ -186,7 +186,17 @@ public enum Source {
     public enum Feature {
 
         DIAMOND(JDK7, Fragments.FeatureDiamond, DiagKind.NORMAL),
-        MODULES(JDK9, Fragments.FeatureModules, DiagKind.PLURAL),
+        MODULES(JDK9, Fragments.FeatureModules, DiagKind.PLURAL) {
+            @Override
+            public boolean allowedInContext(Context context) {
+                // jdk 8 or lower
+                if (!super.allowedInContext(context)) {
+                    return false;
+                }
+                Options options = Options.instance(context);
+                return options.isUnset(NOMODULES);
+            }
+        },
         EFFECTIVELY_FINAL_VARIABLES_IN_TRY_WITH_RESOURCES(JDK9, Fragments.FeatureVarInTryWithResources, DiagKind.PLURAL),
         DEPRECATION_ON_IMPORT(MIN, JDK8),
         POLY(JDK8),
@@ -254,6 +264,10 @@ public enum Source {
         public boolean allowedInSource(Source source) {
             return source.compareTo(minLevel) >= 0 &&
                     source.compareTo(maxLevel) <= 0;
+        }
+
+        public boolean allowedInContext(Context context) {
+            return allowedInSource(Source.instance(context));
         }
 
         public boolean isPlural() {

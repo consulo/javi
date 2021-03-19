@@ -818,7 +818,9 @@ public enum Option {
             };
             return supportedRuntimeOptions;
         }
-    };
+    },
+
+    NOMODULES("--no-modules", "opt.arg.no-modules", STANDARD, BASIC);
 
     /**
      * This exception is thrown when an invalid value is given for an option.

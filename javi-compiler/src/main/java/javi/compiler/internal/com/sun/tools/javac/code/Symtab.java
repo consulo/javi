@@ -25,46 +25,19 @@
 
 package javi.compiler.internal.com.sun.tools.javac.code;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import javi.api.lang.model.element.ElementVisitor;
-
 import javi.compiler.internal.com.sun.tools.javac.code.Scope.WriteableScope;
 import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.ClassSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.Completer;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.CompletionFailure;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.MethodSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.ModuleSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.PackageSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.RootPackageSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.TypeSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.VarSymbol;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.BottomType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.ClassType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.ErrorType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.JCPrimitiveType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.JCVoidType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.MethodType;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.UnknownType;
+import javi.compiler.internal.com.sun.tools.javac.code.Symbol.*;
+import javi.compiler.internal.com.sun.tools.javac.code.Type.*;
 import javi.compiler.internal.com.sun.tools.javac.code.Types.UniqueType;
 import javi.compiler.internal.com.sun.tools.javac.comp.Modules;
 import javi.compiler.internal.com.sun.tools.javac.jvm.Target;
-import javi.compiler.internal.com.sun.tools.javac.util.Assert;
-import javi.compiler.internal.com.sun.tools.javac.util.Context;
-import javi.compiler.internal.com.sun.tools.javac.util.Convert;
-import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy;
-import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
-import javi.compiler.internal.com.sun.tools.javac.util.Iterators;
-import javi.compiler.internal.com.sun.tools.javac.util.JavacMessages;
+import javi.compiler.internal.com.sun.tools.javac.util.*;
 import javi.compiler.internal.com.sun.tools.javac.util.List;
-import javi.compiler.internal.com.sun.tools.javac.util.Name;
-import javi.compiler.internal.com.sun.tools.javac.util.Names;
+import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
+
+import java.util.*;
 
 import static javi.compiler.internal.com.sun.tools.javac.code.Flags.*;
 import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.*;
@@ -503,8 +476,7 @@ public class Symtab {
         // Enter symbol for the errSymbol
         scope.enter(errSymbol);
 
-        Source source = Source.instance(context);
-        if (Feature.MODULES.allowedInSource(source)) {
+        if (Feature.MODULES.allowedInContext(context)) {
             java_base = enterModule(names.java_base);
             //avoid completing java.base during the Symtab initialization
             java_base.completer = Completer.NULL_COMPLETER;

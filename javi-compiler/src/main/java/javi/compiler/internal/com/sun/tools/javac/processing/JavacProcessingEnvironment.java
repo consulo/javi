@@ -25,6 +25,43 @@
 
 package javi.compiler.internal.com.sun.tools.javac.processing;
 
+import javi.api.annotation.processing.Processor;
+import javi.api.lang.model.SourceVersion;
+import javi.api.lang.model.element.*;
+import javi.api.lang.model.util.ElementScanner14;
+import javi.api.lang.model.util.Elements;
+import javi.api.tools.JavaFileManager;
+import javi.api.tools.JavaFileObject;
+import javi.api.tools.JavaFileObject.Kind;
+import javi.api.tools.StandardJavaFileManager;
+import javi.compiler.internal.com.sun.source.util.TaskEvent;
+import javi.compiler.internal.com.sun.tools.javac.api.MultiTaskListener;
+import javi.compiler.internal.com.sun.tools.javac.code.*;
+import javi.compiler.internal.com.sun.tools.javac.code.DeferredCompletionFailureHandler.Handler;
+import javi.compiler.internal.com.sun.tools.javac.code.Scope.WriteableScope;
+import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
+import javi.compiler.internal.com.sun.tools.javac.code.Symbol.*;
+import javi.compiler.internal.com.sun.tools.javac.code.Type.ClassType;
+import javi.compiler.internal.com.sun.tools.javac.comp.*;
+import javi.compiler.internal.com.sun.tools.javac.file.JavacFileManager;
+import javi.compiler.internal.com.sun.tools.javac.main.JavaCompiler;
+import javi.compiler.internal.com.sun.tools.javac.main.Option;
+import javi.compiler.internal.com.sun.tools.javac.model.JavacElements;
+import javi.compiler.internal.com.sun.tools.javac.model.JavacTypes;
+import javi.compiler.internal.com.sun.tools.javac.platform.PlatformDescription;
+import javi.compiler.internal.com.sun.tools.javac.platform.PlatformDescription.PluginInfo;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Errors;
+import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Warnings;
+import javi.compiler.internal.com.sun.tools.javac.tree.JCTree;
+import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.*;
+import javi.compiler.internal.com.sun.tools.javac.tree.TreeInfo;
+import javi.compiler.internal.com.sun.tools.javac.tree.TreeScanner;
+import javi.compiler.internal.com.sun.tools.javac.util.*;
+import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
+import javi.compiler.internal.com.sun.tools.javac.util.List;
+import javi.compiler.internal.com.sun.tools.javac.util.Name;
+import javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -36,69 +73,15 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
-import java.util.regex.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javi.api.lang.model.SourceVersion;
-import javi.api.lang.model.element.*;
-import javi.api.lang.model.util.*;
-import javi.api.tools.JavaFileManager;
-import javi.api.tools.JavaFileObject;
-import javi.api.tools.JavaFileObject.Kind;
-import javi.api.tools.StandardJavaFileManager;
-
 import static javi.api.tools.StandardLocation.*;
-
-import javi.api.annotation.processing.Processor;
-import javi.compiler.internal.com.sun.source.util.TaskEvent;
-import javi.compiler.internal.com.sun.tools.javac.api.MultiTaskListener;
-import javi.compiler.internal.com.sun.tools.javac.code.*;
-import javi.compiler.internal.com.sun.tools.javac.code.DeferredCompletionFailureHandler.Handler;
-import javi.compiler.internal.com.sun.tools.javac.code.Scope.WriteableScope;
-import javi.compiler.internal.com.sun.tools.javac.code.Source.Feature;
-import javi.compiler.internal.com.sun.tools.javac.code.Symbol.*;
-import javi.compiler.internal.com.sun.tools.javac.code.Type.ClassType;
-import javi.compiler.internal.com.sun.tools.javac.code.Types;
-import javi.compiler.internal.com.sun.tools.javac.comp.AttrContext;
-import javi.compiler.internal.com.sun.tools.javac.comp.Check;
-import javi.compiler.internal.com.sun.tools.javac.comp.Enter;
-import javi.compiler.internal.com.sun.tools.javac.comp.Env;
-import javi.compiler.internal.com.sun.tools.javac.comp.Modules;
-import javi.compiler.internal.com.sun.tools.javac.file.JavacFileManager;
-import javi.compiler.internal.com.sun.tools.javac.main.JavaCompiler;
-import javi.compiler.internal.com.sun.tools.javac.main.Option;
-import javi.compiler.internal.com.sun.tools.javac.model.JavacElements;
-import javi.compiler.internal.com.sun.tools.javac.model.JavacTypes;
-import javi.compiler.internal.com.sun.tools.javac.platform.PlatformDescription;
-import javi.compiler.internal.com.sun.tools.javac.platform.PlatformDescription.PluginInfo;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Errors;
-import javi.compiler.internal.com.sun.tools.javac.resources.CompilerProperties.Warnings;
-import javi.compiler.internal.com.sun.tools.javac.tree.*;
-import javi.compiler.internal.com.sun.tools.javac.tree.JCTree.*;
-import javi.compiler.internal.com.sun.tools.javac.util.Abort;
-import javi.compiler.internal.com.sun.tools.javac.util.Assert;
-import javi.compiler.internal.com.sun.tools.javac.util.ClientCodeException;
-import javi.compiler.internal.com.sun.tools.javac.util.Context;
-import javi.compiler.internal.com.sun.tools.javac.util.Convert;
-import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy;
-import javi.compiler.internal.com.sun.tools.javac.util.DefinedBy.Api;
-import javi.compiler.internal.com.sun.tools.javac.util.Iterators;
-import javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic;
-import javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag;
-import javi.compiler.internal.com.sun.tools.javac.util.JavacMessages;
-import javi.compiler.internal.com.sun.tools.javac.util.List;
-import javi.compiler.internal.com.sun.tools.javac.util.Log;
-import javi.compiler.internal.com.sun.tools.javac.util.MatchingUtils;
-import javi.compiler.internal.com.sun.tools.javac.util.ModuleHelper;
-import javi.compiler.internal.com.sun.tools.javac.util.Name;
-import javi.compiler.internal.com.sun.tools.javac.util.Names;
-import javi.compiler.internal.com.sun.tools.javac.util.Options;
-
+import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.ERR;
+import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.PCK;
 import static javi.compiler.internal.com.sun.tools.javac.code.Lint.LintCategory.PROCESSING;
-import static javi.compiler.internal.com.sun.tools.javac.code.Kinds.Kind.*;
-import javi.compiler.internal.com.sun.tools.javac.comp.Annotate;
 import static javi.compiler.internal.com.sun.tools.javac.comp.CompileStates.CompileState;
-import static javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag.*;
+import static javi.compiler.internal.com.sun.tools.javac.util.JCDiagnostic.DiagnosticFlag.RECOVERABLE;
 
 /**
  * Objects of this class hold and manage the state needed to support
@@ -252,7 +235,7 @@ public class JavacProcessingEnvironment implements javi.api.annotation.processin
 
     private Set<String> initPlatformAnnotations() {
         final String module_prefix =
-            Feature.MODULES.allowedInSource(source) ? "java.base/" : "";
+            Feature.MODULES.allowedInContext(context) ? "java.base/" : "";
         return Set.of(module_prefix + "java.lang.Deprecated",
                       module_prefix + "java.lang.FunctionalInterface",
                       module_prefix + "java.lang.Override",
@@ -826,7 +809,7 @@ public class JavacProcessingEnvironment implements javi.api.annotation.processin
                 if (psi.processorIterator.hasNext()) {
                     ProcessorState ps = new ProcessorState(psi.processorIterator.next(),
                                                            log, source, dcfh,
-                                                           Feature.MODULES.allowedInSource(source),
+                                                           Feature.MODULES.allowedInContext(context),
                                                            JavacProcessingEnvironment.this,
                                                            lint);
                     psi.procStateList.add(ps);
@@ -894,7 +877,7 @@ public class JavacProcessingEnvironment implements javi.api.annotation.processin
 
         for(TypeElement a  : annotationsPresent) {
             ModuleElement mod = elementUtils.getModuleOf(a);
-            String moduleSpec = Feature.MODULES.allowedInSource(source) && mod != null ? mod.getQualifiedName() + "/" : "";
+            String moduleSpec = Feature.MODULES.allowedInContext(context) && mod != null ? mod.getQualifiedName() + "/" : "";
             unmatchedAnnotations.put(moduleSpec + a.getQualifiedName().toString(),
                                      a);
         }

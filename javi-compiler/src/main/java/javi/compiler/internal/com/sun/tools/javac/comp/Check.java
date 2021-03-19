@@ -160,6 +160,7 @@ public class Check {
         deferredLintHandler = DeferredLintHandler.instance(context);
 
         allowRecords = Feature.RECORDS.allowedInSource(source);
+        allowModules = Feature.MODULES.allowedInContext(context);
         allowSealed = (!preview.isPreview(Feature.SEALED_CLASSES) || preview.isEnabled()) &&
                 Feature.SEALED_CLASSES.allowedInSource(source);
     }
@@ -200,6 +201,8 @@ public class Check {
     /** Are sealed classes allowed
      */
     private final boolean allowSealed;
+
+    private final boolean allowModules;
 
 /* *************************************************************************
  * Errors and Warnings
@@ -3862,7 +3865,7 @@ public class Check {
             ((c.flags() & (ENUM | RECORD)) == 0) &&
             !c.isAnonymous() &&
             ((c.flags() & (PUBLIC | PROTECTED)) != 0) &&
-            Feature.MODULES.allowedInSource(source)) {
+            allowModules) {
             NestingKind nestingKind = c.getNestingKind();
             switch (nestingKind) {
                 case ANONYMOUS,
