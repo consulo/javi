@@ -25,30 +25,16 @@
 
 package javi.compiler.internal.com.sun.tools.javac.file;
 
+import javi.api.tools.FileObject;
+import javi.compiler.internal.com.sun.tools.javac.file.RelativePath.RelativeDirectory;
+import javi.compiler.internal.com.sun.tools.javac.util.Context;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.ref.SoftReference;
 import java.net.URI;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.FileSystemNotFoundException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.ProviderNotFoundException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-import java.util.Set;
-
-import javi.api.tools.FileObject;
-
-import javi.compiler.internal.com.sun.tools.javac.file.RelativePath.RelativeDirectory;
-import javi.compiler.internal.com.sun.tools.javac.util.Context;
+import java.nio.file.*;
+import java.util.*;
 
 /**
  * A package-oriented index into the jrt: filesystem.
@@ -243,7 +229,7 @@ public class JRTIndex {
         // It's a side-effect of the default build rules that ct.properties
         // ends up as a resource bundle.
         if (ctBundle == null) {
-            final String bundleName = "com.sun.tools.javac.resources.ct";
+            final String bundleName = "javi.compiler.internal.com.sun.tools.javac.resources.ct";
             ctBundle = ResourceBundle.getBundle(bundleName);
         }
         try {
