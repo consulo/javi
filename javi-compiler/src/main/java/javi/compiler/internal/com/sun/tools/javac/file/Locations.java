@@ -235,7 +235,7 @@ public class Locations {
 
     public void setMultiReleaseValue(String multiReleaseValue) {
         // change after https://github.com/openjdk/jdk/commit/515db21790d589cf636ec8b6592b865ca492e887#diff-8340329d6527d1573f190990777d8c18eb6a22dab898f83a830cc7db72ab7ffb
-        if(JavaVersion.JAVA_RECENT.atLeast(JavaVersion.JAVA_16)) {
+        if(JavaVersion.JAVA_RECENT.atLeast(JavaVersion.JAVA_14)) {
             fsEnv = Collections.singletonMap("releaseVersion", multiReleaseValue);
         } else {
             fsEnv = Collections.singletonMap("multi-release", multiReleaseValue);
