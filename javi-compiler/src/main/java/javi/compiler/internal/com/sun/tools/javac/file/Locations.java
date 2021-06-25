@@ -93,7 +93,6 @@ import javi.compiler.internal.com.sun.tools.javac.jvm.ModuleNameReader;
 import javi.compiler.internal.com.sun.tools.javac.util.Iterators;
 import javi.compiler.internal.com.sun.tools.javac.util.Pair;
 import javi.compiler.internal.com.sun.tools.javac.util.StringUtils;
-import org.apache.commons.lang3.JavaVersion;
 
 import static javi.api.tools.StandardLocation.SYSTEM_MODULES;
 import static javi.api.tools.StandardLocation.PLATFORM_CLASS_PATH;
@@ -234,12 +233,9 @@ public class Locations {
     }
 
     public void setMultiReleaseValue(String multiReleaseValue) {
-        // change after https://github.com/openjdk/jdk/commit/515db21790d589cf636ec8b6592b865ca492e887#diff-8340329d6527d1573f190990777d8c18eb6a22dab898f83a830cc7db72ab7ffb
-        if(JavaVersion.JAVA_RECENT.atLeast(JavaVersion.JAVA_14)) {
-            fsEnv = Collections.singletonMap("releaseVersion", multiReleaseValue);
-        } else {
-            fsEnv = Collections.singletonMap("multi-release", multiReleaseValue);
-        }
+        fsEnv = new HashMap<>();
+        fsEnv.put("releaseVersion", multiReleaseValue);
+        fsEnv.put("multi-release", multiReleaseValue);
     }
 
     private boolean contains(Collection<Path> searchPath, Path file) throws IOException {
